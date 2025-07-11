@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class BusinessDetailsService {
+public class BusinessDetailsServiceImpl implements BusinessDetailsService {
 
     private final BusinessDetailsRepository repository;
 
@@ -40,7 +40,7 @@ public class BusinessDetailsService {
         return null;
     }
 
-    private boolean isValidGSTIN(String gstin) {
+    public boolean isValidGSTIN(String gstin) {
         return gstin != null && gstin.matches("\\d{2}[A-Z]{5}\\d{4}[A-Z]{1}\\d[Z]{1}[A-Z\\d]{1}");
     }
 }

@@ -1,4 +1,4 @@
-package com.sarasvan.billing;
+package sarasvan.billing.main;
 
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Encoders;

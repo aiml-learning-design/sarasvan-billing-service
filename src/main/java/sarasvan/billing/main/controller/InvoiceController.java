@@ -1,7 +1,7 @@
-package com.sarasvan.billing.controller;
+package sarasvan.billing.main.controller;
 
-import com.sarasvan.billing.model.Invoice;
-import com.sarasvan.billing.service.InvoiceService;
+import sarasvan.billing.main.model.InvoiceDetails;
+import sarasvan.billing.main.service.InvoiceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -24,17 +23,17 @@ public class InvoiceController {
     private final InvoiceService invoiceService;
 
     @PostMapping
-    public ResponseEntity<Invoice> createInvoice(@Valid @RequestBody Invoice invoice) {
-        return ResponseEntity.ok(invoiceService.create(invoice));
+    public ResponseEntity<InvoiceDetails> createInvoice(@Valid @RequestBody InvoiceDetails invoiceDetails) {
+        return ResponseEntity.ok(invoiceService.create(invoiceDetails));
     }
 
     @GetMapping
-    public ResponseEntity<List<Invoice>> listInvoices() {
+    public ResponseEntity<List<InvoiceDetails>> listInvoices() {
         return ResponseEntity.ok(invoiceService.list());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Invoice> getInvoice(@PathVariable Long id) {
+    public ResponseEntity<InvoiceDetails> getInvoice(@PathVariable Long id) {
         return invoiceService.get(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());

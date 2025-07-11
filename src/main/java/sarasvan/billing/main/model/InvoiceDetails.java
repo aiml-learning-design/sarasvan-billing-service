@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class Invoice {
+public class InvoiceDetails {
 
     private Long id;
     private String invoiceNumber;

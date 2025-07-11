@@ -32,7 +32,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class InvoiceService {
+public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceDetailsRepository invoiceDetailsRepository;
 

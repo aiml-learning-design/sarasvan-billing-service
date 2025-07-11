@@ -1,7 +1,8 @@
-package com.sarasvan.billing.controller;
+package sarasvan.billing.main.controller;
 
-import com.sarasvan.billing.model.BusinessDetails;
-import com.sarasvan.billing.service.BusinessDetailsService;
+import sarasvan.billing.main.model.BusinessDetails;
+import sarasvan.billing.main.service.BusinessDetailsService;
+import sarasvan.billing.main.service.BusinessDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
