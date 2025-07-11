@@ -1,9 +1,11 @@
-package com.sarasvan.billing.service;
+package sarasvan.billing.main.service;
 
-import com.sarasvan.billing.model.BusinessDetails;
-import com.sarasvan.billing.repository.BusinessDetailsRepository;
+import sarasvan.billing.main.entity.BusinessDetailsEntity;
+import sarasvan.billing.main.mapper.BusinessDetailsMapper;
+import sarasvan.billing.main.model.BusinessDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import sarasvan.billing.main.repository.BusinessDetailsRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +17,7 @@ public class BusinessDetailsService {
     private final BusinessDetailsRepository repository;
 
     public BusinessDetails createOrUpdate(final BusinessDetails details) {
-        List<BusinessDetails> existing = repository.findAll();
+        List<BusinessDetailsEntity> existing = repository.findAll();
         if (!existing.isEmpty()) {
             if (existing.size() > 1) {
                 repository.deleteAll();
@@ -28,11 +30,14 @@ public class BusinessDetailsService {
         if (details.getGstin() != null && !isValidGSTIN(details.getGstin())) {
             throw new IllegalArgumentException("Invalid GSTIN format");
         }
-
-        return repository.save(details);
+        BusinessDetailsEntity businessDetails = BusinessDetailsMapper.INSTANCE.dtoToEntity(details);
+        repository.save(businessDetails);
+        return null;
     }
+
     public Optional<BusinessDetails> getById(final Long id) {
-        return repository.findById(id).stream().findFirst();
+        repository.findById(id).stream().findFirst();
+        return null;
     }
 
     private boolean isValidGSTIN(String gstin) {
