@@ -1,16 +1,13 @@
 package com.sarasvan.billing.model;
 
-import jakarta.persistence.*;
 import lombok.*;
 
-@Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BusinessDetails {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String businessName;
     private String address;

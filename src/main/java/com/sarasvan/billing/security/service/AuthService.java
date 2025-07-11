@@ -3,10 +3,12 @@ package com.sarasvan.billing.security.service;
 import com.sarasvan.billing.dto.AuthRequest;
 import com.sarasvan.billing.dto.AuthResponse;
 import com.sarasvan.billing.dto.RegisterRequest;
+import com.sarasvan.billing.entity.UserEntity;
 import com.sarasvan.billing.enums.Role;
 import com.sarasvan.billing.exception.handler.DuplicateEntityException;
+import com.sarasvan.billing.mapper.UsersMapper;
 import com.sarasvan.billing.model.User;
-import com.sarasvan.billing.repository.UserRepository;
+import com.sarasvan.billing.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,7 +20,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepository;
+    private final UsersRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -42,7 +44,10 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
                 .build();
-        userRepository.save(user);
+
+        UserEntity userEntity = UsersMapper.INSTANCE.dtoToEntity(user);
+
+        userRepository.save(userEntity);
         var jwtToken = jwtService.generateToken(user);
         return AuthResponse.builder().token(jwtToken).email(request.getEmail()).build();
     }
@@ -58,7 +63,8 @@ public class AuthService {
             );
             var user = userRepository.findByEmail(request.email())
                     .orElseThrow();
-            var jwtToken = jwtService.generateToken(user);
+            User userDetails = UsersMapper.INSTANCE.entityToDto(user);
+            var jwtToken = jwtService.generateToken(userDetails);
             return AuthResponse.builder().token(jwtToken).email(request.email()).build();
         } catch (BadCredentialsException e) {
             System.err.println("Bad credentials for email: " + request.email());

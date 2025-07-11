@@ -6,14 +6,12 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Data
 @Builder
-public class Invoice {
+@NoArgsConstructor
+@AllArgsConstructor
+public class InvoiceDetails {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String invoiceNumber;
     private String billedTo;

@@ -1,7 +1,7 @@
 package com.sarasvan.billing.controller;
 
 import com.sarasvan.billing.model.BusinessDetails;
-import com.sarasvan.billing.service.BusinessDetailsService;
+import com.sarasvan.billing.service.BusinessDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class BusinessDetailsController {
 
-    private final BusinessDetailsService service;
+    private final BusinessDetailsServiceImpl service;
 
     @PostMapping("/update")
     public BusinessDetails createOrUpdate(@RequestBody BusinessDetails details) {
@@ -19,6 +19,6 @@ public class BusinessDetailsController {
 
     @GetMapping("/{id}")
     public BusinessDetails get(@PathVariable Long id) {
-        return service.getById(id).orElse(null);
+        return service.getById(id);
     }
 }
