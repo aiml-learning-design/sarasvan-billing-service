@@ -1,10 +1,9 @@
 package com.sarasvan.billing.entity;
 
+import com.sarasvan.billing.enums.AuthenticationProvider;
 import com.sarasvan.billing.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.security.AuthProvider;
 
 @Data
 @Builder
@@ -27,7 +26,7 @@ public class UserEntity {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    private AuthProvider provider;
+    private AuthenticationProvider provider;
 
     private String providerId;
 
