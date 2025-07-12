@@ -29,17 +29,17 @@ public class InvoiceController {
 
     private final InvoiceService invoiceService;
 
-    @PostMapping
+    @PostMapping("/add")
     public ResponseEntity<InvoiceDetailsDTO> createInvoice(@Valid @RequestBody InvoiceDetailsDTO invoiceDetailsDTO) {
         return ResponseEntity.ok(invoiceService.create(invoiceDetailsDTO));
     }
-    @PutMapping("/{id}")
+    @PutMapping("/update/{id}")
     public ResponseEntity<InvoiceDetailsDTO> updateInvoice(
             @PathVariable Long id,
             @Valid @RequestBody InvoiceDetailsDTO invoiceDetailsDTO) {
         return ResponseEntity.ok(invoiceService.update(id, invoiceDetailsDTO));
     }
-    @GetMapping
+    @GetMapping("/all")
     public ResponseEntity<List<InvoiceDetailsDTO>> listInvoices() {
         return ResponseEntity.ok(invoiceService.list());
     }

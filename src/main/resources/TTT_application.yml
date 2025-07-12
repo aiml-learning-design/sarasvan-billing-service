@@ -1,0 +1,48 @@
+## ==========================
+## Database Configuration
+## ==========================
+#spring:
+#  datasource:
+#    url: jdbc:sqlserver://localhost:1433;databaseName=billing-service;encrypt=true;trustServerCertificate=true
+#    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+#    username: sa
+#    password: Sa@12345678
+#  jpa:
+#    properties:
+#      hibernate:
+#        dialect: org.hibernate.dialect.SQLServerDialect
+#        format_sql: true
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: true
+#
+## ==========================
+## Server Configuration
+## ==========================
+#server:
+#  port: 8087
+#
+## ==========================
+## Debugging
+## ==========================
+#debug: true
+#
+## ==========================
+## Swagger/SpringDoc OpenAPI
+## ==========================
+#springdoc:
+#  api-docs:
+#    path: /v3/api-docs
+#  swagger-ui:
+#    path: /swagger-ui.html
+#
+## ==========================
+## JWT Configuration
+## ==========================
+#jwt:
+#  secret: Ur03zrPvVhN16W7OdK9hN/g/pKQdyrdEvE72pKqHDEs=
+#  expiration: 86400000  # 1 day in milliseconds
+#
+## ==========================
+## Google OAuth2 Configuration
+## ==========================

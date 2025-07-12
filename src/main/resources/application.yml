@@ -1,0 +1,45 @@
+debug: true
+jwt:
+    expiration: 86400000
+    secret: Ur03zrPvVhN16W7OdK9hN/g/pKQdyrdEvE72pKqHDEs=
+server:
+    port: 8087
+spring:
+    datasource:
+        driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+        driverClassName: org.h2.Driver
+        password: Sa@12345678
+        url: jdbc:sqlserver://localhost:1433;databaseName=billing-service;encrypt=true;trustServerCertificate=true
+        username: sa
+    h2:
+        console:
+            enabled: true
+    jpa:
+        hibernate:
+            ddl-auto: update
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.SQLServerDialect
+                format_sql: true
+        show-sql: true
+    security:
+        oauth2:
+            client:
+                provider:
+                    google:
+                        authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+                        token-uri: https://oauth2.googleapis.com/token
+                        user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+                        user-name-attribute: sub
+                registration:
+                    google:
+                        client-id: your-google-client-id.apps.googleusercontent.com
+                        client-name: Google
+                        client-secret: your-google-client-secret
+                        redirect-uri: '{baseUrl}/login/oauth2/code/{registrationId}'
+                        scope: openid,profile,email
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui.html

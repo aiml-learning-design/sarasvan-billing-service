@@ -12,6 +12,7 @@ import lombok.*;
 import java.util.List;
 
 @Entity
+@Table(name="business_details")
 @Getter
 @Setter
 @NoArgsConstructor

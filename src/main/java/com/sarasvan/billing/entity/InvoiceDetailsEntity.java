@@ -14,6 +14,9 @@ import jakarta.validation.constraints.*;
 
 
 @Entity
+@Table(name="invoice_details", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "email")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,7 +28,7 @@ public class InvoiceDetailsEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, updatable = false)
+    @Column(name = "invoice_number", nullable = false, unique = true, updatable = false)
     private String invoiceNumber;
 
     @PrePersist
@@ -45,7 +48,7 @@ public class InvoiceDetailsEntity {
     @NotBlank
     private String currency;
 
-    @Column(nullable = false)
+    @Column(name = "invoice_value", nullable = false)
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     private BigDecimal amount;
 
