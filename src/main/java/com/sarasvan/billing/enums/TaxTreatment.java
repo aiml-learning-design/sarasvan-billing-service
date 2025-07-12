@@ -1,5 +1,7 @@
 package com.sarasvan.billing.enums;
 
+import lombok.Getter;
+
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -14,6 +16,7 @@ public enum TaxTreatment implements IDEnum<Integer> {
     DEEMED_EXPORT(5, "Deemed Exports");
 
     private int id;
+    @Getter
     private String taxType;
 
     TaxTreatment(int id, String taxType) {
@@ -23,10 +26,6 @@ public enum TaxTreatment implements IDEnum<Integer> {
 
     public Integer get() {
         return id;
-    }
-
-    public String getTaxType() {
-        return taxType;
     }
 
     public static TaxTreatment fromValue(Serializable value) {
