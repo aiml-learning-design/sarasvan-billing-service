@@ -1,14 +1,21 @@
 package com.sarasvan.billing.service;
 
 import com.sarasvan.billing.entity.BusinessDetailsEntity;
+import com.sarasvan.billing.entity.OfficeAddressEntity;
+import com.sarasvan.billing.exception.handler.BusinessException;
 import com.sarasvan.billing.mapper.BusinessDetailsMapper;
-import com.sarasvan.billing.model.BusinessDetails;
+import com.sarasvan.billing.mapper.OfficeAddressMapper;
+import com.sarasvan.billing.model.BusinessDetailsDTO;
+import com.sarasvan.billing.model.OfficeAddressDTO;
 import com.sarasvan.billing.repository.BusinessDetailsRepository;
+import com.sarasvan.billing.util.GSTINValidator;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,30 +23,52 @@ public class BusinessDetailsServiceImpl implements BusinessDetailsService {
 
     private final BusinessDetailsRepository repository;
 
-    public BusinessDetails createOrUpdate(final BusinessDetails details) {
-        List<BusinessDetailsEntity> existing = repository.findAll();
-        if (!existing.isEmpty()) {
-            if (existing.size() > 1) {
-                repository.deleteAll();
-                details.setId(null);
-            } else {
-                details.setId(existing.get(0).getId());
-            }
+    @Override
+    @Transactional
+    public BusinessDetailsDTO createOrUpdate(@Valid @NotNull final BusinessDetailsDTO details) {
+
+        if (details.getGstin() != null && !GSTINValidator.isValidGSTIN(details.getGstin())) {
+            throw new BusinessException("Invalid GSTIN format");
         }
 
-        if (details.getGstin() != null && !isValidGSTIN(details.getGstin())) {
-            throw new IllegalArgumentException("Invalid GSTIN format");
+        BusinessDetailsEntity entity;
+        List<BusinessDetailsEntity> existingList = repository.findAll();
+
+        if (!existingList.isEmpty()) {
+            entity = existingList.get(0);
+            details.setId(entity.getId());
+        } else {
+            details.setId(null);
         }
-        repository.save(BusinessDetailsMapper.INSTANCE.dtoToEntity(details));
-        return details;
-    }
-    public BusinessDetails getById(final Long id) {
 
-        Optional<BusinessDetailsEntity> businessDetails = repository.findById(id).stream().findFirst();
-        return businessDetails.isPresent() ? BusinessDetailsMapper.INSTANCE.entityToDto(businessDetails.get()) : null;
+        BusinessDetailsEntity saved = repository.save(
+                BusinessDetailsMapper.INSTANCE.dtoToEntity(details)
+        );
+
+        return BusinessDetailsMapper.INSTANCE.entityToDto(saved);
     }
 
-    private boolean isValidGSTIN(String gstin) {
-        return gstin != null && gstin.matches("\\d{2}[A-Z]{5}\\d{4}[A-Z]{1}\\d[Z]{1}[A-Z\\d]{1}");
+    @Override
+    @Transactional
+    public BusinessDetailsDTO updateOfficeAddress(@Valid @NotNull Long businessId,
+                                                  @Valid @NotNull OfficeAddressDTO officeAddressDTO) {
+
+        BusinessDetailsEntity entity = repository.findById(businessId)
+                .orElseThrow(() -> new BusinessException("Business not found with ID: " + businessId));
+
+        OfficeAddressEntity newAddress = OfficeAddressMapper.INSTANCE.dtoToEntity(officeAddressDTO);
+        entity.addOfficeAddress(newAddress);
+
+        BusinessDetailsEntity updated = repository.save(entity);
+        return BusinessDetailsMapper.INSTANCE.entityToDto(updated);
+    }
+
+    @Override
+    @Transactional
+    public BusinessDetailsDTO getById(@Valid @NotNull final Long businessId) {
+        BusinessDetailsEntity entity = repository.findById(businessId)
+                .orElseThrow(() -> new BusinessException("Business not found with ID: " + businessId));
+
+        return BusinessDetailsMapper.INSTANCE.entityToDto(entity);
     }
 }

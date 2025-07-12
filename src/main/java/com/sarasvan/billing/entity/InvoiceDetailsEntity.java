@@ -9,29 +9,82 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
+
+
 @Entity
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class InvoiceDetailsEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false, unique = true, updatable = false)
     private String invoiceNumber;
+
+    @PrePersist
+    public void generateInvoiceNumber() {
+        if (this.invoiceNumber == null || this.invoiceNumber.isBlank()) {
+            String prefix = "SARASVAN-INV";
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            this.invoiceNumber = prefix + "-" + timestamp.substring(5);
+        }
+    }
+
+    @Column(nullable = false)
+    @NotBlank
     private String billedTo;
+
+    @Column(nullable = false)
+    @NotBlank
     private String currency;
+
+    @Column(nullable = false)
+    @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     private BigDecimal amount;
+
+    @Column(nullable = false)
+    @NotBlank
     private String status;
+
+    @Column(nullable = false)
+    @NotBlank
     private String placeOfSupply;
+
+    @Column(nullable = false)
     private LocalDate invoiceDate;
+
     private LocalDate dueDate;
+
+    @DecimalMin(value = "0.00")
     private BigDecimal dueAmount;
+
     private String gstStatus;
+
+    @DecimalMin(value = "0.00")
     private BigDecimal gstRate;
+
+    @DecimalMin(value = "0.00")
     private BigDecimal igst;
+
+    @DecimalMin(value = "0.00")
     private BigDecimal cgst;
+
+    @DecimalMin(value = "0.00")
     private BigDecimal sgst;
+
     private Boolean deleted = false;
+
+    @NotBlank
     private String createdBy;
+
+    @Column(nullable = false)
+    private Long businessId;
+
 }

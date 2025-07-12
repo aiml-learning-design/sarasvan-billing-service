@@ -14,9 +14,11 @@ import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.sarasvan.billing.entity.InvoiceDetailsEntity;
 import com.sarasvan.billing.mapper.InvoiceDetailsMapper;
-import com.sarasvan.billing.model.InvoiceDetails;
+import com.sarasvan.billing.model.InvoiceDetailsDTO;
 import com.sarasvan.billing.repository.InvoiceDetailsRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -29,6 +31,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,61 +39,107 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private final InvoiceDetailsRepository invoiceDetailsRepository;
 
-    public InvoiceDetails create(final InvoiceDetails invoiceDetails) {
-        validateInvoice(invoiceDetails);
-        generateInvoiceNumber(invoiceDetails);
-        InvoiceDetailsEntity invoiceDetailsEntity =  InvoiceDetailsMapper.INSTANCE.dtoToEntity(invoiceDetails);
+    public InvoiceDetailsDTO create(final InvoiceDetailsDTO invoiceDetailsDTO) {
+        validateInvoice(invoiceDetailsDTO);
+        generateInvoiceNumber(invoiceDetailsDTO);
+        calculateTaxes(invoiceDetailsDTO);
+        InvoiceDetailsEntity invoiceDetailsEntity =  InvoiceDetailsMapper.INSTANCE.dtoToEntity(invoiceDetailsDTO);
         invoiceDetailsEntity = invoiceDetailsRepository.save(invoiceDetailsEntity);
         return InvoiceDetailsMapper.INSTANCE.entityToDto(invoiceDetailsEntity);
     }
 
-    private void validateInvoice(InvoiceDetails invoiceDetails) {
-        if (invoiceDetails.getInvoiceDate() == null) {
-            invoiceDetails.setInvoiceDate(LocalDate.now());
+    public InvoiceDetailsDTO update(Long id, InvoiceDetailsDTO updatedDTO) {
+        InvoiceDetailsEntity existing = invoiceDetailsRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
+        updatedDTO.setId(id);
+        validateInvoice(updatedDTO);
+        calculateTaxes(updatedDTO);
+        InvoiceDetailsEntity updated = InvoiceDetailsMapper.INSTANCE.dtoToEntity(updatedDTO);
+        updated.setDeleted(existing.getDeleted());
+        return InvoiceDetailsMapper.INSTANCE.entityToDto(invoiceDetailsRepository.save(updated));
+    }
+
+    public void markAsPaid(Long id) {
+        invoiceDetailsRepository.findById(id).ifPresent(inv -> {
+            inv.setStatus("PAID");
+            inv.setDueAmount(BigDecimal.ZERO);
+            invoiceDetailsRepository.save(inv);
+        });
+    }
+
+    public List<InvoiceDetailsDTO> search(String status, String billedTo, LocalDate startDate, LocalDate endDate) {
+        return invoiceDetailsRepository.findAll().stream()
+                .filter(inv -> !inv.getDeleted())
+                .filter(inv -> status == null || status.equalsIgnoreCase(inv.getStatus()))
+                .filter(inv -> billedTo == null || billedTo.equalsIgnoreCase(inv.getBilledTo()))
+                .filter(inv -> startDate == null || !inv.getInvoiceDate().isBefore(startDate))
+                .filter(inv -> endDate == null || !inv.getInvoiceDate().isAfter(endDate))
+                .map(InvoiceDetailsMapper.INSTANCE::entityToDto)
+                .collect(Collectors.toList());
+    }
+
+    public void restore(Long id) {
+        invoiceDetailsRepository.findById(id).ifPresent(inv -> {
+            inv.setDeleted(false);
+            invoiceDetailsRepository.save(inv);
+        });
+    }
+
+    private void validateInvoice(InvoiceDetailsDTO invoiceDetailsDTO) {
+        if (invoiceDetailsDTO.getInvoiceDate() == null) {
+            invoiceDetailsDTO.setInvoiceDate(LocalDate.now());
         }
 
-        if (invoiceDetails.getDueDate() == null && invoiceDetails.getInvoiceDate() != null) {
-            invoiceDetails.setDueDate(invoiceDetails.getInvoiceDate().plusDays(30));
+        if (invoiceDetailsDTO.getDueDate() == null && invoiceDetailsDTO.getInvoiceDate() != null) {
+            invoiceDetailsDTO.setDueDate(invoiceDetailsDTO.getInvoiceDate().plusDays(30));
         }
 
-        if (invoiceDetails.getAmount() == null || invoiceDetails.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (invoiceDetailsDTO.getAmount() == null || invoiceDetailsDTO.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Invoice amount must be positive");
         }
     }
 
-    private void calculateTaxes(InvoiceDetails invoiceDetails) {
-        if (invoiceDetails.getGstRate() != null && invoiceDetails.getGstRate().compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal taxableAmount = invoiceDetails.getAmount();
-            BigDecimal taxAmount = taxableAmount.multiply(invoiceDetails.getGstRate()).divide(new BigDecimal(100));
+    private void calculateTaxes(InvoiceDetailsDTO invoiceDetailsDTO) {
+        if (invoiceDetailsDTO.getGstRate() != null && invoiceDetailsDTO.getGstRate().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal taxableAmount = invoiceDetailsDTO.getAmount();
+            BigDecimal taxAmount = taxableAmount.multiply(invoiceDetailsDTO.getGstRate()).divide(new BigDecimal(100));
 
-            if ("INTER".equals(invoiceDetails.getGstStatus())) {
-                invoiceDetails.setIgst(taxAmount);
-                invoiceDetails.setCgst(BigDecimal.ZERO);
-                invoiceDetails.setSgst(BigDecimal.ZERO);
+            if ("INTER".equalsIgnoreCase(invoiceDetailsDTO.getGstStatus())) {
+                invoiceDetailsDTO.setIgst(taxAmount);
+                invoiceDetailsDTO.setCgst(BigDecimal.ZERO);
+                invoiceDetailsDTO.setSgst(BigDecimal.ZERO);
             } else {
-                invoiceDetails.setIgst(BigDecimal.ZERO);
-                invoiceDetails.setCgst(taxAmount.divide(new BigDecimal(2)));
-                invoiceDetails.setSgst(taxAmount.divide(new BigDecimal(2)));
+                BigDecimal half = taxAmount.divide(new BigDecimal(2), RoundingMode.HALF_UP);
+                invoiceDetailsDTO.setIgst(BigDecimal.ZERO);
+                invoiceDetailsDTO.setCgst(half);
+                invoiceDetailsDTO.setSgst(half);
             }
         }
     }
 
-    private void generateInvoiceNumber(InvoiceDetails invoiceDetails) {
-        if (invoiceDetails.getInvoiceNumber() == null) {
+    private void generateInvoiceNumber(InvoiceDetailsDTO invoiceDetailsDTO) {
+        if (invoiceDetailsDTO.getInvoiceNumber() == null) {
             String prefix = "SARASVAN-INV";
             String timestamp = String.valueOf(System.currentTimeMillis());
-            invoiceDetails.setInvoiceNumber(prefix + "-" + timestamp.substring(5));
+            invoiceDetailsDTO.setInvoiceNumber(prefix + "-" + timestamp.substring(5));
         }
     }
 
 
-    public List<InvoiceDetails> list() {
+    public List<InvoiceDetailsDTO> list() {
         List<InvoiceDetailsEntity> invoiceDetailsEntities = invoiceDetailsRepository.findByDeletedFalse();
         return InvoiceDetailsMapper.INSTANCE.entityListToDtoList(invoiceDetailsEntities);
     }
-    public Optional<InvoiceDetails> get(Long id) {
-        Optional<InvoiceDetailsEntity> invoiceDetailsEntity = invoiceDetailsRepository.findById(id).filter(inv -> !inv.getDeleted());
-        return null;
+    public Optional<InvoiceDetailsDTO> get(Long id) {
+        return invoiceDetailsRepository.findById(id)
+                .filter(inv -> !inv.getDeleted())
+                .map(InvoiceDetailsMapper.INSTANCE::entityToDto);
+    }
+
+    public Page<InvoiceDetailsDTO> getInvoicesByBusinessId(Long businessId, String status, LocalDate from, LocalDate to, Pageable pageable) {
+        Page<InvoiceDetailsEntity> entityPage = invoiceDetailsRepository.findByBusinessIdFiltered(
+                businessId, status, from, to, pageable);
+        return entityPage.map(InvoiceDetailsMapper.INSTANCE::entityToDto);
     }
 
     public void delete(Long id) {
@@ -101,12 +150,12 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     public ByteArrayInputStream exportCsv() {
-        List<InvoiceDetails> invoiceDetails = list();
+        List<InvoiceDetailsDTO> invoiceDetailDTOS = list();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PrintWriter writer = new PrintWriter(out);
 
         writer.println("Invoice Number,Billed To,Currency,Amount,Status,Place Of Supply,Invoice Date,Due Date,Due Amount");
-        for (InvoiceDetails inv : invoiceDetails) {
+        for (InvoiceDetailsDTO inv : invoiceDetailDTOS) {
             writer.printf("%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
                     inv.getInvoiceNumber(), inv.getBilledTo(), inv.getCurrency(), inv.getAmount(),
                     inv.getStatus(), inv.getPlaceOfSupply(), inv.getInvoiceDate(),
@@ -118,7 +167,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
 
     public ByteArrayInputStream exportPdf() throws IOException {
-        List<InvoiceDetails> invoiceDetails = list();
+        List<InvoiceDetailsDTO> invoiceDetailDTOS = list();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         PdfWriter writer = new PdfWriter(out);
@@ -162,7 +211,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         PdfFont dataFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
-        for (InvoiceDetails inv : invoiceDetails) {
+        for (InvoiceDetailsDTO inv : invoiceDetailDTOS) {
             table.addCell(new Cell().add(new Paragraph(inv.getInvoiceNumber())).setFont(dataFont));
             table.addCell(new Cell().add(new Paragraph(inv.getBilledTo())).setFont(dataFont));
             table.addCell(new Cell().add(new Paragraph(inv.getCurrency())).setFont(dataFont));
@@ -190,9 +239,8 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .setTextAlignment(TextAlignment.CENTER));
     }
 
-    // Single invoice PDF export
     public ByteArrayInputStream exportInvoiceAsPdf(Long invoiceId) throws IOException {
-        InvoiceDetails invoiceDetails = get(invoiceId)
+        InvoiceDetailsDTO invoiceDetailsDTO = get(invoiceId)
                 .orElseThrow(() -> new IllegalArgumentException("Invoice not found"));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -200,7 +248,6 @@ public class InvoiceServiceImpl implements InvoiceService {
         PdfDocument pdf = new PdfDocument(writer);
         Document document = new Document(pdf);
 
-        // Invoice header
         PdfFont titleFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         Paragraph title = new Paragraph("INVOICE")
                 .setFont(titleFont)
@@ -209,7 +256,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .setMarginBottom(20);
         document.add(title);
 
-        // Invoice details
         PdfFont boldFont = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
         PdfFont regularFont = PdfFontFactory.createFont(StandardFonts.HELVETICA);
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
@@ -219,49 +265,48 @@ public class InvoiceServiceImpl implements InvoiceService {
         detailsTable.setWidth(UnitValue.createPercentValue(80));
         detailsTable.setMarginBottom(20);
 
-        // Left column - Invoice info
         detailsTable.addCell(createDetailCell("Invoice Number:", boldFont));
-        detailsTable.addCell(createDetailCell(invoiceDetails.getInvoiceNumber(), regularFont));
+        detailsTable.addCell(createDetailCell(invoiceDetailsDTO.getInvoiceNumber(), regularFont));
 
         detailsTable.addCell(createDetailCell("Invoice Date:", boldFont));
         detailsTable.addCell(createDetailCell(
-                invoiceDetails.getInvoiceDate().format(dateFormatter), regularFont));
+                invoiceDetailsDTO.getInvoiceDate().format(dateFormatter), regularFont));
 
         detailsTable.addCell(createDetailCell("Due Date:", boldFont));
         detailsTable.addCell(createDetailCell(
-                invoiceDetails.getDueDate() != null ? invoiceDetails.getDueDate().format(dateFormatter) : "N/A",
+                invoiceDetailsDTO.getDueDate() != null ? invoiceDetailsDTO.getDueDate().format(dateFormatter) : "N/A",
                 regularFont));
 
         detailsTable.addCell(createDetailCell("Billed To:", boldFont));
-        detailsTable.addCell(new Cell(1, 2).add(new Paragraph(invoiceDetails.getBilledTo())).setFont(regularFont));
+        detailsTable.addCell(new Cell(1, 2).add(new Paragraph(invoiceDetailsDTO.getBilledTo())).setFont(regularFont));
 
         Table amountTable = new Table(UnitValue.createPercentArray(new float[]{2, 1}));
         amountTable.setWidth(UnitValue.createPercentValue(50));
         amountTable.setMarginTop(20);
 
         amountTable.addCell(createDetailCell("Subtotal:", boldFont));
-        amountTable.addCell(createDetailCell(invoiceDetails.getAmount().toString(), regularFont));
+        amountTable.addCell(createDetailCell(invoiceDetailsDTO.getAmount().toString(), regularFont));
 
-        if (invoiceDetails.getIgst() != null && invoiceDetails.getIgst().compareTo(BigDecimal.ZERO) > 0) {
-            amountTable.addCell(createDetailCell("IGST (" + invoiceDetails.getGstRate() + "%):", boldFont));
-            amountTable.addCell(createDetailCell(invoiceDetails.getIgst().toString(), regularFont));
+        if (invoiceDetailsDTO.getIgst() != null && invoiceDetailsDTO.getIgst().compareTo(BigDecimal.ZERO) > 0) {
+            amountTable.addCell(createDetailCell("IGST (" + invoiceDetailsDTO.getGstRate() + "%):", boldFont));
+            amountTable.addCell(createDetailCell(invoiceDetailsDTO.getIgst().toString(), regularFont));
         }
 
-        if (invoiceDetails.getCgst() != null && invoiceDetails.getCgst().compareTo(BigDecimal.ZERO) > 0) {
-            amountTable.addCell(createDetailCell("CGST (" + invoiceDetails.getGstRate().divide(BigDecimal.valueOf(2), RoundingMode.CEILING) + "%):", boldFont));
-            amountTable.addCell(createDetailCell(invoiceDetails.getCgst().toString(), regularFont));
+        if (invoiceDetailsDTO.getCgst() != null && invoiceDetailsDTO.getCgst().compareTo(BigDecimal.ZERO) > 0) {
+            amountTable.addCell(createDetailCell("CGST (" + invoiceDetailsDTO.getGstRate().divide(BigDecimal.valueOf(2), RoundingMode.CEILING) + "%):", boldFont));
+            amountTable.addCell(createDetailCell(invoiceDetailsDTO.getCgst().toString(), regularFont));
         }
 
-        if (invoiceDetails.getSgst() != null && invoiceDetails.getSgst().compareTo(BigDecimal.ZERO) > 0) {
-            amountTable.addCell(createDetailCell("SGST (" + invoiceDetails.getGstRate().divide(BigDecimal.valueOf(2), RoundingMode.CEILING) + "%):", boldFont));
-            amountTable.addCell(createDetailCell(invoiceDetails.getSgst().toString(), regularFont));
+        if (invoiceDetailsDTO.getSgst() != null && invoiceDetailsDTO.getSgst().compareTo(BigDecimal.ZERO) > 0) {
+            amountTable.addCell(createDetailCell("SGST (" + invoiceDetailsDTO.getGstRate().divide(BigDecimal.valueOf(2), RoundingMode.CEILING) + "%):", boldFont));
+            amountTable.addCell(createDetailCell(invoiceDetailsDTO.getSgst().toString(), regularFont));
         }
 
         amountTable.addCell(createDetailCell("Total:", boldFont).setBackgroundColor(ColorConstants.LIGHT_GRAY));
-        BigDecimal total = invoiceDetails.getAmount()
-                .add(invoiceDetails.getIgst() != null ? invoiceDetails.getIgst() : BigDecimal.ZERO)
-                .add(invoiceDetails.getCgst() != null ? invoiceDetails.getCgst() : BigDecimal.ZERO)
-                .add(invoiceDetails.getSgst() != null ? invoiceDetails.getSgst() : BigDecimal.ZERO);
+        BigDecimal total = invoiceDetailsDTO.getAmount()
+                .add(invoiceDetailsDTO.getIgst() != null ? invoiceDetailsDTO.getIgst() : BigDecimal.ZERO)
+                .add(invoiceDetailsDTO.getCgst() != null ? invoiceDetailsDTO.getCgst() : BigDecimal.ZERO)
+                .add(invoiceDetailsDTO.getSgst() != null ? invoiceDetailsDTO.getSgst() : BigDecimal.ZERO);
         amountTable.addCell(createDetailCell(total.toString(), regularFont)
                 .setBackgroundColor(ColorConstants.LIGHT_GRAY));
 

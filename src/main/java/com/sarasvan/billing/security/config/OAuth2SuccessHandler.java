@@ -41,8 +41,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 .signWith(SignatureAlgorithm.HS256, jwtSecret)
                 .compact();
 
-        // Respond with the JWT
-        response.setContentType("application/json");
-        new ObjectMapper().writeValue(response.getWriter(), Map.of("token", token));
+
+/*
+// Respond with the JWT
+ response.setContentType("application/json");
+        new ObjectMapper().writeValue(response.getWriter(), Map.of("token", token));*/
+        response.sendRedirect("http://localhost:3000/dashboard?user=" + email);
     }
 }
