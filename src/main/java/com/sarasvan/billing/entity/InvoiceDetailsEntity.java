@@ -40,9 +40,13 @@ public class InvoiceDetailsEntity {
         }
     }
 
-    @Column(nullable = false)
-    @NotBlank
-    private String billedTo;
+    @ManyToOne
+    @JoinColumn(name = "billed_by_id")
+    private BusinessDetailsEntity billedBy;
+
+    @ManyToOne
+    @JoinColumn(name = "billed_to_id")
+    private BusinessDetailsEntity billedTo;
 
     @Column(nullable = false)
     @NotBlank

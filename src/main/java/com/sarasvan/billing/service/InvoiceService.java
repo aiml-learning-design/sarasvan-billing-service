@@ -19,7 +19,7 @@ public interface InvoiceService {
     void delete(Long id);
     void restore(Long id);
     void markAsPaid(Long id);
-    List<InvoiceDetailsDTO> search(String status, String billedTo, LocalDate from, LocalDate to);
+    List<InvoiceDetailsDTO> search(String status, Long billedToBusinessId, LocalDate from, LocalDate to);
     ByteArrayInputStream exportCsv();
     ByteArrayInputStream exportPdf() throws IOException;
     ByteArrayInputStream exportInvoiceAsPdf(Long invoiceId) throws IOException;

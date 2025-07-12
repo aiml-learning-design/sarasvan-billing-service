@@ -67,11 +67,11 @@ public class InvoiceServiceImpl implements InvoiceService {
         });
     }
 
-    public List<InvoiceDetailsDTO> search(String status, String billedTo, LocalDate startDate, LocalDate endDate) {
+    public List<InvoiceDetailsDTO> search(String status, Long billedToBusinessId, LocalDate startDate, LocalDate endDate) {
         return invoiceDetailsRepository.findAll().stream()
                 .filter(inv -> !inv.getDeleted())
                 .filter(inv -> status == null || status.equalsIgnoreCase(inv.getStatus()))
-                .filter(inv -> billedTo == null || billedTo.equalsIgnoreCase(inv.getBilledTo()))
+                .filter(inv -> billedToBusinessId == null || billedToBusinessId == inv.getBilledTo().getId())
                 .filter(inv -> startDate == null || !inv.getInvoiceDate().isBefore(startDate))
                 .filter(inv -> endDate == null || !inv.getInvoiceDate().isAfter(endDate))
                 .map(InvoiceDetailsMapper.INSTANCE::entityToDto)
@@ -213,7 +213,7 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         for (InvoiceDetailsDTO inv : invoiceDetailDTOS) {
             table.addCell(new Cell().add(new Paragraph(inv.getInvoiceNumber())).setFont(dataFont));
-            table.addCell(new Cell().add(new Paragraph(inv.getBilledTo())).setFont(dataFont));
+            table.addCell(new Cell().add(new Paragraph(String.valueOf(inv.getBilledTo().getId()))).setFont(dataFont));
             table.addCell(new Cell().add(new Paragraph(inv.getCurrency())).setFont(dataFont));
             table.addCell(new Cell().add(new Paragraph(inv.getAmount().toString())).setFont(dataFont));
             table.addCell(new Cell().add(new Paragraph(inv.getStatus())).setFont(dataFont));
@@ -278,7 +278,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 regularFont));
 
         detailsTable.addCell(createDetailCell("Billed To:", boldFont));
-        detailsTable.addCell(new Cell(1, 2).add(new Paragraph(invoiceDetailsDTO.getBilledTo())).setFont(regularFont));
+        detailsTable.addCell(new Cell(1, 2).add(new Paragraph(String.valueOf(invoiceDetailsDTO.getBilledTo().getId()))).setFont(regularFont));
 
         Table amountTable = new Table(UnitValue.createPercentArray(new float[]{2, 1}));
         amountTable.setWidth(UnitValue.createPercentValue(50));

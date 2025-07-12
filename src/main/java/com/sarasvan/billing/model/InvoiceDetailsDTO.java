@@ -2,6 +2,9 @@ package com.sarasvan.billing.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.sarasvan.billing.entity.BusinessDetailsEntity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -20,8 +23,12 @@ public class InvoiceDetailsDTO {
     @JsonProperty("invoiceNumber")
     private String invoiceNumber;
 
+    @JsonProperty("billedBy")
+    private BusinessDetailsDTO billedBy;
+
     @JsonProperty("billedTo")
-    private String billedTo;
+    private BusinessDetailsDTO billedTo;
+
 
     @JsonProperty("currency")
     private String currency;

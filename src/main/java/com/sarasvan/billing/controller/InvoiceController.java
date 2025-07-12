@@ -87,10 +87,10 @@ public class InvoiceController {
     @GetMapping("/search")
     public ResponseEntity<List<InvoiceDetailsDTO>> searchInvoices(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String billedTo,
+            @RequestParam(required = false) Long billedToBusinessId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        return ResponseEntity.ok(invoiceService.search(status, billedTo, startDate, endDate));
+        return ResponseEntity.ok(invoiceService.search(status, billedToBusinessId, startDate, endDate));
     }
 
     @GetMapping("/export/csv")
